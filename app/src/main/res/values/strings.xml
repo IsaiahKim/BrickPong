@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mode_ready">Touch to play</string>
+    <string name="mode_pause">Paused</string>
+    <string name="mode_win">You win!</string>
+    <string name="mode_lose">You lose!</string>
+    <string name="mode_tie">You tied!</string>
+    <string name="menu_new_game">New game</string>
+    <string name="menu_exit">Exit</string>
+    <string name="menu_resume">Resume</string>
+    <string name="default_score">0    0</string>
+</resources>
