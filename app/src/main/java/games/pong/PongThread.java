@@ -50,6 +50,9 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
+    private static final int BRICK_HEIGHT = 200;
+    private static final int BRICK_WIDTH = 100;
+
     private final SurfaceHolder mSurfaceHolder;
 
     private final Handler mStatusHandler;
@@ -144,21 +147,40 @@ public class PongThread extends Thread {
         mCanvasHeight = 1;
         mCanvasWidth = 1;
 
+        mRandomGen = new Random();
+        mComputerMoveProbability = 0.6f;
+
         Display display = ((Activity)context).getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
-        int maxX = size.x;
-        int maxY = size.y;
+        float maxX = size.x;
+        float maxY = size.y;
+        float midX = size.x / 2;
+        float midY = size.y / 2;
 
         mBricks = new ArrayList<>();
-        Paint brickPaint = new Paint();
-        brickPaint.setAntiAlias(true);
-        brickPaint.setColor(Color.CYAN);
-        mBricks.add(new Brick(new RectF
-        (100, 100, maxX, maxY), brickPaint));
 
-        mRandomGen = new Random();
-        mComputerMoveProbability = 0.6f;
+        for (int i=0;i<maxX/(3*BRICK_WIDTH);i++) {
+            for (int j=0;j<maxY/(3*BRICK_HEIGHT);j++) {
+                if (mRandomGen.nextFloat() > .3) {
+                    Paint brickPaint = new Paint();
+                    brickPaint.setAntiAlias(true);
+                    brickPaint.setColor(Color.CYAN);
+                    mBricks.add(new Brick(new RectF
+                        (midX+i*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
+                   midX+(i+1)*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                        (midX-(i+1)*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
+                    midX-i*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                        (midX+i*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
+                    midX+(i+1)*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                        (midX-(i+1)*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
+                    midX-i*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                }
+            }
+        }
     }
 
     /**
@@ -364,33 +386,39 @@ public class PongThread extends Thread {
             mComputerPlayer.collision--;
         }
         for (int i=0;i<mBalls.size();i++) {
-            Ball mBall = mBalls.get(i);
+            Ball ball = mBalls.get(i);
 
-            if (collision(mHumanPlayer, mBall)) {
-                handleCollision(mHumanPlayer, mBall);
+            if (collision(mHumanPlayer, ball)) {
+                handleCollision(mHumanPlayer, ball);
                 mHumanPlayer.collision = PHYS_COLLISION_FRAMES;
-            } else if (collision(mComputerPlayer, mBall)) {
-                handleCollision(mComputerPlayer, mBall);
+            } else if (collision(mComputerPlayer, ball)) {
+                handleCollision(mComputerPlayer, ball);
                 mComputerPlayer.collision = PHYS_COLLISION_FRAMES;
-            } else if (ballCollidedWithTopOrBottomWall(mBall)) {
-                mBall.dy = -mBall.dy;
-            } else if (ballCollidedWithRightWall(mBall)) {
+            } else if (ballCollidedWithTopOrBottomWall(ball)) {
+                ball.dy = -ball.dy;
+            } else if (ballCollidedWithRightWall(ball)) {
                 mHumanPlayer.score++;   // human plays on left
                 if (mBalls.size() > 1) {
-                    mBalls.remove(mBall);
+                    mBalls.remove(ball);
                 }
                 else {
                     setState(STATE_END);
                     return;
                 }
-            } else if (ballCollidedWithLeftWall(mBall)) {
+            } else if (ballCollidedWithLeftWall(ball)) {
                 mComputerPlayer.score++;
                 if (mBalls.size() > 1) {
-                    mBalls.remove(mBall);
+                    mBalls.remove(ball);
                 }
                 else {
                     setState(STATE_END);
                     return;
+                }
+            }
+
+            for (int j = 0; j<mBricks.size(); j++) {
+                if (collision(ball, mBricks.get(j))) {
+                    //TODO: FILL ME
                 }
             }
 
@@ -398,7 +426,7 @@ public class PongThread extends Thread {
                 doAI();
             }
 
-            moveBall(mBall);
+            moveBall(ball);
         }
     }
 
@@ -546,6 +574,14 @@ public class PongThread extends Thread {
                 ball.cy + ball.radius);
     }
 
+    private boolean collision(Ball ball, Brick brick) {
+        return brick.getCoords().intersect(
+                ball.cx - ball.radius,
+                ball.cy - ball.radius,
+                ball.cx + ball.radius,
+                ball.cy + ball.radius);
+    }
+
     /**
      * Compute ball direction after collision with player paddle.
      */
@@ -564,7 +600,7 @@ public class PongThread extends Thread {
         }
 
         //TODO: REMOVE ALL BELOW, BOOTLEG BALL-ADDING
-        int ballRadius = mBalls.get(0).radius;
+        /* int ballRadius = mBalls.get(0).radius;
         Paint ballPaint = new Paint();
         ballPaint.setAntiAlias(true);
         ballPaint.setColor(Color.GREEN);
@@ -574,10 +610,12 @@ public class PongThread extends Thread {
         mBall.cy = mCanvasHeight / 2;
         mBall.dx = -PHYS_BALL_SPEED;
         mBall.dy = 0;
-        mBalls.add(mBall);
+        mBalls.add(mBall); */
     }
 
     private void handleCollision(Brick brick, Ball ball) {
+        mBricks.remove(brick);
+
 
     }
 
