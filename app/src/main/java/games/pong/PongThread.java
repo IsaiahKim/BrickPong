@@ -36,7 +36,7 @@ public class PongThread extends Thread {
     public static final int STATE_RUNNING = 2;
     public static final int STATE_END    = 3;
 
-    private static final int    PHYS_BALL_SPEED       = 40;
+    private static final int    PHYS_BALL_SPEED       = 20;
     private static final int    PHYS_PADDLE_SPEED     = 40;
     private static final int    PHYS_FPS              = 60;
     private static final double PHYS_MAX_BOUNCE_ANGLE = 5 * Math.PI / 12; // 75 degrees in radians
@@ -50,8 +50,8 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
-    private static final int BRICK_HEIGHT = 200;
-    private static final int BRICK_WIDTH = 100;
+    private static final int BRICK_HEIGHT = 300;
+    private static final int BRICK_WIDTH = 300;
 
     private final SurfaceHolder mSurfaceHolder;
 
@@ -415,10 +415,23 @@ public class PongThread extends Thread {
                     return;
                 }
             }
+            boolean xFlag = true;
+            boolean yFlag = true;
 
             for (int j = 0; j<mBricks.size(); j++) {
-                if (collision(ball, mBricks.get(j))) {
-                    //TODO: FILL ME
+                Brick brick = mBricks.get(j);
+                if (collision(ball, brick)) {
+                    if ((brick.getCoords().left >= ball.cy) && (brick.getCoords().right <= ball.cy)){ //TODO: NEVER FIRES
+                        if (yFlag) {
+                            ball.dy = -ball.dy;
+                            yFlag = false;
+                        }
+                    }
+                    else if (xFlag) {
+                        ball.dx = -ball.dx;
+                        xFlag = false;
+                    }
+                    mBricks.remove(brick);
                 }
             }
 
@@ -611,12 +624,6 @@ public class PongThread extends Thread {
         mBall.dx = -PHYS_BALL_SPEED;
         mBall.dy = 0;
         mBalls.add(mBall); */
-    }
-
-    private void handleCollision(Brick brick, Ball ball) {
-        mBricks.remove(brick);
-
-
     }
 
 }
