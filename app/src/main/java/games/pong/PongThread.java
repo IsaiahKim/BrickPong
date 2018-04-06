@@ -50,8 +50,8 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
-    private static final int BRICK_HEIGHT = 300;
-    private static final int BRICK_WIDTH = 300;
+    private static final int BRICK_HEIGHT = 200;
+    private static final int BRICK_WIDTH = 100;
 
     private final SurfaceHolder mSurfaceHolder;
 
@@ -415,21 +415,26 @@ public class PongThread extends Thread {
                     return;
                 }
             }
+
+            /* These flags prevent the ball from hitting a shared corner of two bricks and continue
+            to go in the same direction as before.
+             */
             boolean xFlag = true;
             boolean yFlag = true;
 
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
                 if (collision(ball, brick)) {
-                    if ((brick.getCoords().left >= ball.cy) && (brick.getCoords().right <= ball.cy)){ //TODO: NEVER FIRES
-                        if (yFlag) {
-                            ball.dy = -ball.dy;
-                            yFlag = false;
+                    // Handles ball hitting the side of the brick
+                    if ((brick.getCoords().bottom>=ball.cy) && (brick.getCoords().top<=ball.cy)){
+                        if (xFlag) {
+                            ball.dx = -ball.dx;
+                            xFlag = false;
                         }
                     }
-                    else if (xFlag) {
-                        ball.dx = -ball.dx;
-                        xFlag = false;
+                    else if (yFlag) {
+                        ball.dy = -ball.dy;
+                        yFlag = false;
                     }
                     mBricks.remove(brick);
                 }
