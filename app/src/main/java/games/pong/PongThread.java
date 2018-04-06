@@ -50,8 +50,8 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
-    private static final int BRICK_HEIGHT = 200;
-    private static final int BRICK_WIDTH = 100;
+    private static final float BRICK_HEIGHT = 150;
+    private static final float BRICK_WIDTH = 100;
 
     private final SurfaceHolder mSurfaceHolder;
 
@@ -150,37 +150,7 @@ public class PongThread extends Thread {
         mRandomGen = new Random();
         mComputerMoveProbability = 0.6f;
 
-        Display display = ((Activity)context).getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        float maxX = size.x;
-        float maxY = size.y;
-        float midX = size.x / 2;
-        float midY = size.y / 2;
-
         mBricks = new ArrayList<>();
-
-        for (int i=0;i<maxX/(3*BRICK_WIDTH);i++) {
-            for (int j=0;j<maxY/(3*BRICK_HEIGHT);j++) {
-                if (mRandomGen.nextFloat() > .3) {
-                    Paint brickPaint = new Paint();
-                    brickPaint.setAntiAlias(true);
-                    brickPaint.setColor(Color.CYAN);
-                    mBricks.add(new Brick(new RectF
-                        (midX+i*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
-                   midX+(i+1)*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
-                    mBricks.add(new Brick(new RectF
-                        (midX-(i+1)*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
-                    midX-i*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
-                    mBricks.add(new Brick(new RectF
-                        (midX+i*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
-                    midX+(i+1)*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
-                    mBricks.add(new Brick(new RectF
-                        (midX-(i+1)*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
-                    midX-i*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
-                }
-            }
-        }
     }
 
     /**
@@ -424,7 +394,7 @@ public class PongThread extends Thread {
 
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
-                if (collision(ball, brick)) {
+                if (collision(ball, brick)) { //TODO: Either false positives or negatives, check pls
                     // Handles ball hitting the side of the brick
                     if ((brick.getCoords().bottom>=ball.cy) && (brick.getCoords().top<=ball.cy)){
                         if (xFlag) {
@@ -432,7 +402,7 @@ public class PongThread extends Thread {
                             xFlag = false;
                         }
                     }
-                    else if (yFlag) {
+                    else if (yFlag) { //TODO: Need better conditions, sometimes wrong one applies
                         ball.dy = -ball.dy;
                         yFlag = false;
                     }
@@ -528,20 +498,46 @@ public class PongThread extends Thread {
      * Reset players and ball position for a new round.
      */
     private void setupNewRound() {
-        if (mComputerPlayer.score == 0 && mHumanPlayer.score == 0) {
-            movePlayer(mHumanPlayer,
-                    2,
-                    (mCanvasHeight - mHumanPlayer.paddleHeight) / 2);
+        movePlayer(mHumanPlayer,
+                2,
+                (mCanvasHeight - mHumanPlayer.paddleHeight) / 2);
 
-            movePlayer(mComputerPlayer,
-                    mCanvasWidth - mComputerPlayer.paddleWidth - 2,
-                    (mCanvasHeight - mComputerPlayer.paddleHeight) / 2);
-        }
+        movePlayer(mComputerPlayer,
+                mCanvasWidth - mComputerPlayer.paddleWidth - 2,
+                (mCanvasHeight - mComputerPlayer.paddleHeight) / 2);
         Ball mBall = mBalls.get(0);
         mBall.cx = mCanvasWidth / 2;
         mBall.cy = mCanvasHeight / 2;
         mBall.dx = -PHYS_BALL_SPEED;
         mBall.dy = 0;
+
+        Paint brickPaint = new Paint();
+        brickPaint.setAntiAlias(true);
+        brickPaint.setColor(Color.CYAN);
+
+        float midX = mCanvasWidth/2;
+        float midY = mCanvasHeight/2;
+
+        mBricks.clear();
+
+        for (int i=0;i<((1.3*midX)/(2*BRICK_WIDTH));i++) {
+            for (int j=0;j<((1.5*midY)/(2*BRICK_HEIGHT));j++) {
+                if (mRandomGen.nextFloat() > .3) {
+                    mBricks.add(new Brick(new RectF
+                            (midX+i*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
+                                    midX+(i+1)*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                            (midX-(i+1)*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
+                                    midX-i*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                            (midX+i*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
+                                    midX+(i+1)*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                    mBricks.add(new Brick(new RectF
+                            (midX-(i+1)*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
+                                    midX-i*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                }
+            }
+        }
 
     }
 
