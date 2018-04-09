@@ -47,6 +47,9 @@ public class PongThread extends Thread {
     private static final String KEY_BALL_DATA            = "ball";
     private static final String KEY_GAME_STATE           = "state";
     private static final String KEY_BALL_COUNT           = "count";
+    private static final String KEY_BRICK_COUNT          = "bricks";
+    private static final String KEY_BRICK_COORDINATES    = "coordinates";
+    private static final String KEY_BRICK_COLOR          = "color";
 
     private static final String TAG = "PongThread";
 
@@ -212,7 +215,6 @@ public class PongThread extends Thread {
                             mComputerPlayer.score});
 
             int ballCount = mBalls.size();
-
             map.putInt(KEY_BALL_COUNT, ballCount);
 
             for (int i=0;i<ballCount;i++) {
@@ -221,11 +223,22 @@ public class PongThread extends Thread {
                         new float[]{target.cx, target.cy, target.dx, target.dy});
             }
 
+            int brickCount = mBricks.size();
+            map.putInt(KEY_BRICK_COUNT, brickCount);
+
+            for (int j=0;j<brickCount;j++) {
+                Brick brick = mBricks.get(j);
+                RectF coords = brick.getCoords();
+                map.putFloatArray(KEY_BRICK_COORDINATES + Integer.toString(j),
+                        new float[]{coords.left, coords.top, coords.right, coords.bottom});
+                map.putInt(KEY_BRICK_COLOR + Integer.toString(j), brick.paint.getColor());
+            }
+
             map.putInt(KEY_GAME_STATE, mState);
         }
     }
 
-    void restoreState(Bundle map) {
+    void restoreState(Bundle map) { // TODO: Doesn't actually work
         synchronized (mSurfaceHolder) {
             float[] humanPlayerData = map.getFloatArray(KEY_HUMAN_PLAYER_DATA);
             mHumanPlayer.score = (int) humanPlayerData[2];
@@ -236,7 +249,7 @@ public class PongThread extends Thread {
             movePlayer(mComputerPlayer, computerPlayerData[0], computerPlayerData[1]);
 
             int ballCount = map.getInt(KEY_BALL_COUNT);
-            int ballRadius = mBalls.get(0).radius;
+            float ballRadius = mBalls.get(0).radius;
 
             for (int i=0;i<ballCount;i++) {
                 if (i >= mBalls.size()) {
@@ -252,6 +265,17 @@ public class PongThread extends Thread {
                 target.cy = ballData[1];
                 target.dx = ballData[2];
                 target.dy = ballData[3];
+            }
+
+            int brickCount = map.getInt(KEY_BALL_COUNT);
+
+            for (int j=0;j<brickCount;j++) {
+                Paint brickPaint = new Paint();
+                brickPaint.setAntiAlias(true);
+                brickPaint.setColor(map.getInt(KEY_BRICK_COLOR));
+                float[] rawCoords = map.getFloatArray(KEY_BRICK_COORDINATES + Integer.toString(j));
+                RectF coords = new RectF(rawCoords[0], rawCoords[1], rawCoords[2], rawCoords[3]);
+                mBricks.add(new Brick(coords, brickPaint));
             }
 
             int state = map.getInt(KEY_GAME_STATE);
@@ -395,6 +419,7 @@ public class PongThread extends Thread {
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
                 if (collision(ball, brick)) { //TODO: Either false positives or negatives, check pls
+                    Log.d("Collision", "BRICK #" + Integer.toString(j));
                     // Handles ball hitting the side of the brick
                     if ((brick.getCoords().bottom>=ball.cy) && (brick.getCoords().top<=ball.cy)){
                         if (xFlag) {
@@ -612,19 +637,6 @@ public class PongThread extends Thread {
         } else {
             ball.cx = mComputerPlayer.bounds.left - ball.radius;
         }
-
-        //TODO: REMOVE ALL BELOW, BOOTLEG BALL-ADDING
-        /* int ballRadius = mBalls.get(0).radius;
-        Paint ballPaint = new Paint();
-        ballPaint.setAntiAlias(true);
-        ballPaint.setColor(Color.GREEN);
-
-        Ball mBall = new Ball(ballRadius, ballPaint);
-        mBall.cx = mCanvasWidth / 2;
-        mBall.cy = mCanvasHeight / 2;
-        mBall.dx = -PHYS_BALL_SPEED;
-        mBall.dy = 0;
-        mBalls.add(mBall); */
     }
 
 }

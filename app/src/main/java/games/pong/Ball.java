@@ -14,10 +14,10 @@ class Ball {
     float cy;
     float dx;
     float dy;
-    int radius;
+    float radius;
     Paint paint;
 
-    Ball(int radius, Paint paint) {
+    Ball(float radius, Paint paint) {
         this.radius = radius;
         this.paint = paint;
     }
