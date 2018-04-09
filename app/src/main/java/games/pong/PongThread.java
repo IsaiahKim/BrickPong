@@ -42,6 +42,10 @@ public class PongThread extends Thread {
     private static final double PHYS_MAX_BOUNCE_ANGLE = 5 * Math.PI / 12; // 75 degrees in radians
     private static final int    PHYS_COLLISION_FRAMES = 5;
 
+    private static final int NO_COLLISION_CODE        = -1;
+    private static final int SIDE_COLLISION_CODE      = 1;
+    private static final int FRONTAL_COLLISION_CODE   = 2;
+
     private static final String KEY_HUMAN_PLAYER_DATA    = "humanPlayer";
     private static final String KEY_COMPUTER_PLAYER_DATA = "computerPlayer";
     private static final String KEY_BALL_DATA            = "ball";
@@ -418,16 +422,17 @@ public class PongThread extends Thread {
 
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
-                if (collision(ball, brick)) { //TODO: Either false positives or negatives, check pls
+                int collisionStatus = collision(ball, brick);
+                if (collisionStatus > 0) {
                     Log.d("Collision", "BRICK #" + Integer.toString(j));
                     // Handles ball hitting the side of the brick
-                    if ((brick.getCoords().bottom>=ball.cy) && (brick.getCoords().top<=ball.cy)){
+                    if (collisionStatus == FRONTAL_COLLISION_CODE){
                         if (xFlag) {
                             ball.dx = -ball.dx;
                             xFlag = false;
                         }
                     }
-                    else if (yFlag) { //TODO: Need better conditions, sometimes wrong one applies
+                    else if (yFlag) {
                         ball.dy = -ball.dy;
                         yFlag = false;
                     }
@@ -613,12 +618,19 @@ public class PongThread extends Thread {
                 ball.cy + ball.radius);
     }
 
-    private boolean collision(Ball ball, Brick brick) {
-        return brick.getCoords().intersect(
+    private int collision(Ball ball, Brick brick) {
+        RectF union = new RectF(brick.getCoords());
+        if (!union.intersect(
                 ball.cx - ball.radius,
                 ball.cy - ball.radius,
                 ball.cx + ball.radius,
-                ball.cy + ball.radius);
+                ball.cy + ball.radius)) {
+            return NO_COLLISION_CODE;
+        }
+        if (union.height() < union.width()) {
+            return SIDE_COLLISION_CODE;
+        }
+        return FRONTAL_COLLISION_CODE;
     }
 
     /**
