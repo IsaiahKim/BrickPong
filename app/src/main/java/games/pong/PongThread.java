@@ -42,10 +42,6 @@ public class PongThread extends Thread {
     private static final double PHYS_MAX_BOUNCE_ANGLE = 5 * Math.PI / 12; // 75 degrees in radians
     private static final int    PHYS_COLLISION_FRAMES = 5;
 
-    private static final int NO_COLLISION_CODE        = -1;
-    private static final int SIDE_COLLISION_CODE      = 1;
-    private static final int FRONTAL_COLLISION_CODE   = 2;
-
     private static final String KEY_HUMAN_PLAYER_DATA    = "humanPlayer";
     private static final String KEY_COMPUTER_PLAYER_DATA = "computerPlayer";
     private static final String KEY_BALL_DATA            = "ball";
@@ -57,8 +53,15 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
-    private static final float BRICK_HEIGHT = 150;
+    private static final float BRICK_HEIGHT = 100;
     private static final float BRICK_WIDTH = 100;
+
+    private static final int TOP_BOTTOM_HIT = 1;
+    private static final int LEFT_RIGHT_HIT = 2;
+    private static final int TOP_LEFT_HIT = 3;
+    private static final int BOTTOM_LEFT_HIT = 4;
+    private static final int TOP_RIGHT_HIT = 5;
+    private static final int BOTTOM_RIGHT_HIT = 6;
 
     private final SurfaceHolder mSurfaceHolder;
 
@@ -417,26 +420,98 @@ public class PongThread extends Thread {
             /* These flags prevent the ball from hitting a shared corner of two bricks and continue
             to go in the same direction as before.
              */
-            boolean xFlag = true;
-            boolean yFlag = true;
+            boolean pass = false;
+            boolean TLHit, TRHit, BLHit, BRHit;
+            TLHit = TRHit = BLHit = BRHit = false;
+            float cornerX, cornerY;
+            cornerX = cornerY = 0;
 
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
                 int collisionStatus = collision(ball, brick);
                 if (collisionStatus > 0) {
-                    Log.d("Collision", "BRICK #" + Integer.toString(j));
-                    // Handles ball hitting the side of the brick
-                    if (collisionStatus == FRONTAL_COLLISION_CODE){
-                        if (xFlag) {
-                            ball.dx = -ball.dx;
-                            xFlag = false;
-                        }
-                    }
-                    else if (yFlag) {
+                    if (collisionStatus == TOP_BOTTOM_HIT) {
+                        Log.d("Collision Resolution", "Top-Bottom Collision Resolved");
+                        ball.dx = -ball.dx;
+                        pass = true;
+                        mBricks.remove(brick);
+                        break;
+                    } else if (collisionStatus == LEFT_RIGHT_HIT) {
+                        Log.d("Collision Resolution", "Left-Right Collision Resolved");
                         ball.dy = -ball.dy;
-                        yFlag = false;
+                        pass = true;
+                        mBricks.remove(brick);
+                        break;
+                    } else if (collisionStatus == TOP_LEFT_HIT) {
+                        TLHit = true;
+                        Log.d("Collision Count", "Top-Left Collision Counted");
+                        if (!(TRHit || BLHit || BRHit)) {
+                            cornerX = brick.getCoords().left;
+                            cornerY = brick.getCoords().top;
+                        }
+                    } else if (collisionStatus == TOP_RIGHT_HIT) {
+                        TRHit = true;
+                        Log.d("Collision Count", "Top-Right Collision Counted");
+                        if (!(TLHit || BLHit || BRHit)) {
+                            cornerX = brick.getCoords().right;
+                            cornerY = brick.getCoords().top;
+                        }
+
+                    } else if (collisionStatus == BOTTOM_LEFT_HIT) {
+                        BLHit = true;
+                        Log.d("Collision Count", "Bottom-Left Collision Counted");
+                        if (!(TRHit || TLHit || BRHit)) {
+                            cornerX = brick.getCoords().left;
+                            cornerY = brick.getCoords().bottom;
+                        }
+
+                    } else if (collisionStatus == BOTTOM_RIGHT_HIT) {
+                        BRHit = true;
+                        Log.d("Collision Count", "Bottom-Right Collision Counted");
+                        if (!(TRHit || BLHit || TLHit)) {
+                            cornerX = brick.getCoords().right;
+                            cornerY = brick.getCoords().bottom;
+                        }
+
                     }
+
                     mBricks.remove(brick);
+                }
+            }
+            if (!pass) { //TODO: REDO FOR NON-ALIGNED BRICKS
+                int corners = cornerCount(TLHit, TRHit, BLHit, BRHit);
+                if (corners >= 3) {
+                    Log.d("Collision Resolution", "Three Corner Collision Resolved");
+                    ball.dx *= -1;
+                    ball.dy *= -1;
+                }
+                if (corners == 2) {
+                    Log.d("Collision Resolution", "Two Corner Collision Resolved");
+                    if ((TLHit && TRHit) || (BLHit && BRHit)) {
+                        ball.dx *= -1;
+                    }
+                    else if ((TLHit && BLHit) || (TRHit && BRHit)) {
+                        ball.dy *= -1;
+                    }
+                    else {
+                        ball.dx *= -1;
+                        ball.dy *= -1;
+                    }
+                }
+                if (corners == 1) {
+                    Log.d("Collision Resolution", "Single Corner Collision Resolved");
+                    Log.d("Old Velocity", "dx: " + Float.toString(ball.dx) + " dy:" +
+                            Float.toString(ball.dy) + " Speed: " +
+                            Double.toString(Math.sqrt(ball.dx*ball.dx + ball.dy*ball.dy)));
+                    double normX = ball.cx - cornerX;
+                    double normY = ball.cy - cornerY;
+                    double c = -2*(ball.dx*normX + ball.dy*normY)/
+                            (normX*normX + normY*normY);
+                    ball.dx = (float) (ball.dx + c*normX);
+                    ball.dy = (float) (ball.dy + c*normY);
+                    Log.d("New Velocity", "dx: " + Float.toString(ball.dx) + " dy:" +
+                            Float.toString(ball.dy) + " Speed: " +
+                            Double.toString(Math.sqrt(ball.dx*ball.dx + ball.dy*ball.dy)));
                 }
             }
 
@@ -457,6 +532,15 @@ public class PongThread extends Thread {
         } else if (mBall.cy + mBall.radius >= mCanvasHeight) {
             mBall.cy = mCanvasHeight - mBall.radius - 1;
         }
+    }
+
+    private int cornerCount(boolean a, boolean b, boolean c, boolean d) {
+        int corners = 0;
+        if (a) {corners++;}
+        if (b) {corners++;}
+        if (c) {corners++;}
+        if (d) {corners++;}
+        return corners;
     }
 
     /**
@@ -536,7 +620,7 @@ public class PongThread extends Thread {
                 mCanvasWidth - mComputerPlayer.paddleWidth - 2,
                 (mCanvasHeight - mComputerPlayer.paddleHeight) / 2);
         Ball mBall = mBalls.get(0);
-        mBall.cx = mCanvasWidth / 2;
+        mBall.cx = mCanvasWidth / 8;
         mBall.cy = mCanvasHeight / 2;
         mBall.dx = -PHYS_BALL_SPEED;
         mBall.dy = 0;
@@ -551,7 +635,7 @@ public class PongThread extends Thread {
         mBricks.clear();
 
         for (int i=0;i<((1.3*midX)/(2*BRICK_WIDTH));i++) {
-            for (int j=0;j<((1.5*midY)/(2*BRICK_HEIGHT));j++) {
+            for (int j=0;j<((1.3*midY)/(2*BRICK_HEIGHT));j++) {
                 if (mRandomGen.nextFloat() > .3) {
                     mBricks.add(new Brick(new RectF
                             (midX+i*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
@@ -619,18 +703,57 @@ public class PongThread extends Thread {
     }
 
     private int collision(Ball ball, Brick brick) {
-        RectF union = new RectF(brick.getCoords());
-        if (!union.intersect(
+        RectF coords = brick.getCoords();
+        RectF intersection = new RectF(coords);
+        if (intersection.intersect(
                 ball.cx - ball.radius,
                 ball.cy - ball.radius,
                 ball.cx + ball.radius,
                 ball.cy + ball.radius)) {
-            return NO_COLLISION_CODE;
+            if (ball.cx < coords.left) {
+                if (ball.cy < coords.top) {
+                    if (distance(ball.cx, ball.cy, coords.left, coords.top) > ball.radius) {
+                        return -1;
+                    }
+                    Log.d("Collision Detection", "Top-Left Collision Detected.");
+                    return TOP_LEFT_HIT;
+                }
+                if (ball.cy > coords.bottom) {
+                    if (distance(ball.cx, ball.cy, coords.left, coords.bottom) > ball.radius) {
+                        return -1;
+                    }
+                    Log.d("Collision Detection", "Bottom-Left Collision Detected.");
+                    return BOTTOM_LEFT_HIT;
+                }
+            }
+            if (ball.cx > coords.right) {
+                if (ball.cy < coords.top) {
+                    if (distance(ball.cx, ball.cy, coords.right, coords.top) > ball.radius) {
+                        return -1;
+                    }
+                    Log.d("Collision Detection", "Top-Right Collision Detected.");
+                    return TOP_RIGHT_HIT;
+                }
+                if (ball.cy > coords.bottom) {
+                    if (distance(ball.cx, ball.cy, coords.right, coords.bottom) > ball.radius) {
+                        return -1;
+                    }
+                    Log.d("Collision Detection", "Bottom-Right Collision Detected.");
+                    return BOTTOM_RIGHT_HIT;
+                }
+            }
+            if (intersection.height() > intersection.width()) {
+                Log.d("Collision Detection", "Top-Bottom Collision detected.");
+                return TOP_BOTTOM_HIT;
+            }
+            Log.d("Collision Detection", "Left-Right Collision detected.");
+            return LEFT_RIGHT_HIT;
         }
-        if (union.height() < union.width()) {
-            return SIDE_COLLISION_CODE;
-        }
-        return FRONTAL_COLLISION_CODE;
+        return -1;
+    }
+
+    private double distance(float x1, float y1, float x2, float y2) {
+        return Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + Math.pow(Math.abs(y1 - y2), 2));
     }
 
     /**
