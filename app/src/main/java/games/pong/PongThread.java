@@ -36,7 +36,7 @@ public class PongThread extends Thread {
     public static final int STATE_RUNNING = 2;
     public static final int STATE_END    = 3;
 
-    private static final int    PHYS_BALL_SPEED       = 20;
+    private static final int    PHYS_BALL_SPEED       = 20; //TODO: Fix clipping at high speeds
     private static final int    PHYS_PADDLE_SPEED     = 40;
     private static final int    PHYS_FPS              = 60;
     private static final double PHYS_MAX_BOUNCE_ANGLE = 5 * Math.PI / 12; // 75 degrees in radians
@@ -89,7 +89,7 @@ public class PongThread extends Thread {
     private int   mCanvasWidth;
 
     /**
-     * Used to make computer to "forget" to move the paddle in order to behave more like a human opponent.
+     * Used to make computer to "forget" to move the paddle like a human opponent.
      */
     private Random mRandomGen;
 
@@ -212,13 +212,11 @@ public class PongThread extends Thread {
     void saveState(Bundle map) {
         synchronized (mSurfaceHolder) {
             map.putFloatArray(KEY_HUMAN_PLAYER_DATA,
-                    new float[]{mHumanPlayer.bounds.left,
-                            mHumanPlayer.bounds.top,
+                    new float[]{mHumanPlayer.bounds.left, mHumanPlayer.bounds.top,
                             mHumanPlayer.score});
 
             map.putFloatArray(KEY_COMPUTER_PLAYER_DATA,
-                    new float[]{mComputerPlayer.bounds.left,
-                            mComputerPlayer.bounds.top,
+                    new float[]{mComputerPlayer.bounds.left, mComputerPlayer.bounds.top,
                             mComputerPlayer.score});
 
             int ballCount = mBalls.size();
@@ -280,7 +278,8 @@ public class PongThread extends Thread {
                 Paint brickPaint = new Paint();
                 brickPaint.setAntiAlias(true);
                 brickPaint.setColor(map.getInt(KEY_BRICK_COLOR));
-                float[] rawCoords = map.getFloatArray(KEY_BRICK_COORDINATES + Integer.toString(j));
+                float[] rawCoords =
+                        map.getFloatArray(KEY_BRICK_COORDINATES + Integer.toString(j));
                 RectF coords = new RectF(rawCoords[0], rawCoords[1], rawCoords[2], rawCoords[3]);
                 mBricks.add(new Brick(coords, brickPaint));
             }
@@ -361,9 +360,7 @@ public class PongThread extends Thread {
 
     void moveHumanPaddle(float dy) {
         synchronized (mSurfaceHolder) {
-            movePlayer(mHumanPlayer,
-                    mHumanPlayer.bounds.left,
-                    mHumanPlayer.bounds.top + dy);
+            movePlayer(mHumanPlayer, mHumanPlayer.bounds.left, mHumanPlayer.bounds.top + dy);
         }
     }
 
@@ -498,7 +495,7 @@ public class PongThread extends Thread {
                         ball.dy *= -1;
                     }
                 }
-                if (corners == 1) {
+                if (corners == 1) { //TODO: Ensure the ball doesn't bounce sideways for eternity
                     Log.d("Collision Resolution", "Single Corner Collision Resolved");
                     Log.d("Old Velocity", "dx: " + Float.toString(ball.dx) + " dy:" +
                             Float.toString(ball.dy) + " Speed: " +
@@ -569,8 +566,7 @@ public class PongThread extends Thread {
     }
 
     private boolean ballCollidedWithTopOrBottomWall(Ball mBall) {
-        return mBall.cy <= mBall.radius
-                || mBall.cy + mBall.radius >= mCanvasHeight - 1;
+        return mBall.cy <= mBall.radius || mBall.cy + mBall.radius >= mCanvasHeight - 1;
     }
 
     /**
@@ -602,7 +598,8 @@ public class PongThread extends Thread {
 
     private void handleHit(Player player) {
         if (player.collision > 0) {
-            player.paint.setShadowLayer(player.paddleWidth / 2, 0, 0, player.paint.getColor());
+            player.paint.setShadowLayer(player.paddleWidth / 2,
+                    0, 0, player.paint.getColor());
         } else {
             player.paint.setShadowLayer(0, 0, 0, 0);
         }
@@ -625,9 +622,9 @@ public class PongThread extends Thread {
         mBall.dx = -PHYS_BALL_SPEED;
         mBall.dy = 0;
 
-        Paint brickPaint = new Paint();
-        brickPaint.setAntiAlias(true);
-        brickPaint.setColor(Color.CYAN);
+        Paint bPaint = new Paint();
+        bPaint.setAntiAlias(true);
+        bPaint.setColor(Color.CYAN);
 
         float midX = mCanvasWidth/2;
         float midY = mCanvasHeight/2;
@@ -639,16 +636,16 @@ public class PongThread extends Thread {
                 if (mRandomGen.nextFloat() > .3) {
                     mBricks.add(new Brick(new RectF
                             (midX+i*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
-                                    midX+(i+1)*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                            midX+(i+1)*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), bPaint));
                     mBricks.add(new Brick(new RectF
                             (midX-(i+1)*BRICK_WIDTH, midY+j*BRICK_HEIGHT,
-                                    midX-i*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), brickPaint));
+                            midX-i*BRICK_WIDTH, midY+(j+1)*BRICK_HEIGHT), bPaint));
                     mBricks.add(new Brick(new RectF
                             (midX+i*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
-                                    midX+(i+1)*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                            midX+(i+1)*BRICK_WIDTH, midY-j*BRICK_HEIGHT), bPaint));
                     mBricks.add(new Brick(new RectF
                             (midX-(i+1)*BRICK_WIDTH, midY-(j+1)*BRICK_HEIGHT,
-                                    midX-i*BRICK_WIDTH, midY-j*BRICK_HEIGHT), brickPaint));
+                            midX-i*BRICK_WIDTH, midY-j*BRICK_HEIGHT), bPaint));
                 }
             }
         }
@@ -773,5 +770,4 @@ public class PongThread extends Thread {
             ball.cx = mComputerPlayer.bounds.left - ball.radius;
         }
     }
-
 }
