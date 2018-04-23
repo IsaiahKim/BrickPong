@@ -53,8 +53,8 @@ public class PongThread extends Thread {
 
     private static final String TAG = "PongThread";
 
-    private static final float BRICK_HEIGHT = 200;
-    private static final float BRICK_WIDTH = 200;
+    private static final float BRICK_HEIGHT = 100;
+    private static final float BRICK_WIDTH = 100;
 
     private static final int TOP_BOTTOM_HIT = 1;
     private static final int LEFT_RIGHT_HIT = 2;
@@ -424,42 +424,51 @@ public class PongThread extends Thread {
             boolean TLHit, TRHit, BLHit, BRHit;
             TLHit = TRHit = BLHit = BRHit = false;
             float cornerX, cornerY;
+            cornerX = cornerY = 0;
 
             for (int j = 0; j<mBricks.size(); j++) {
                 Brick brick = mBricks.get(j);
                 int collisionStatus = collision(ball, brick);
                 if (collisionStatus > 0) {
                     if (collisionStatus == TOP_BOTTOM_HIT) {
+                        Log.d("Collision Resolution", "Top-Bottom Collision Resolved");
                         ball.dx = -ball.dx;
                         pass = true;
+                        mBricks.remove(brick);
                         break;
                     } else if (collisionStatus == LEFT_RIGHT_HIT) {
+                        Log.d("Collision Resolution", "Left-Right Collision Resolved");
                         ball.dy = -ball.dy;
                         pass = true;
+                        mBricks.remove(brick);
                         break;
                     } else if (collisionStatus == TOP_LEFT_HIT) {
                         TLHit = true;
-                        if (!(TRHit && BLHit && BRHit)) {
+                        Log.d("Collision Count", "Top-Left Collision Counted");
+                        if (!(TRHit || BLHit || BRHit)) {
                             cornerX = brick.getCoords().left;
                             cornerY = brick.getCoords().top;
                         }
                     } else if (collisionStatus == TOP_RIGHT_HIT) {
                         TRHit = true;
-                        if (!(TLHit && BLHit && BRHit)) {
+                        Log.d("Collision Count", "Top-Right Collision Counted");
+                        if (!(TLHit || BLHit || BRHit)) {
                             cornerX = brick.getCoords().right;
                             cornerY = brick.getCoords().top;
                         }
 
                     } else if (collisionStatus == BOTTOM_LEFT_HIT) {
                         BLHit = true;
-                        if (!(TRHit && TLHit && BRHit)) {
+                        Log.d("Collision Count", "Bottom-Left Collision Counted");
+                        if (!(TRHit || TLHit || BRHit)) {
                             cornerX = brick.getCoords().left;
                             cornerY = brick.getCoords().bottom;
                         }
 
                     } else if (collisionStatus == BOTTOM_RIGHT_HIT) {
                         BRHit = true;
-                        if (!(TRHit && BLHit && TLHit)) {
+                        Log.d("Collision Count", "Bottom-Right Collision Counted");
+                        if (!(TRHit || BLHit || TLHit)) {
                             cornerX = brick.getCoords().right;
                             cornerY = brick.getCoords().bottom;
                         }
@@ -469,8 +478,41 @@ public class PongThread extends Thread {
                     mBricks.remove(brick);
                 }
             }
-            if (!pass) { //TODO: IMPLEMENT CORNER CHECKS
-
+            if (!pass) { //TODO: REDO FOR NON-ALIGNED BRICKS
+                int corners = cornerCount(TLHit, TRHit, BLHit, BRHit);
+                if (corners >= 3) {
+                    Log.d("Collision Resolution", "Three Corner Collision Resolved");
+                    ball.dx *= -1;
+                    ball.dy *= -1;
+                }
+                if (corners == 2) {
+                    Log.d("Collision Resolution", "Two Corner Collision Resolved");
+                    if ((TLHit && TRHit) || (BLHit && BRHit)) {
+                        ball.dx *= -1;
+                    }
+                    else if ((TLHit && BLHit) || (TRHit && BRHit)) {
+                        ball.dy *= -1;
+                    }
+                    else {
+                        ball.dx *= -1;
+                        ball.dy *= -1;
+                    }
+                }
+                if (corners == 1) {
+                    Log.d("Collision Resolution", "Single Corner Collision Resolved");
+                    Log.d("Old Velocity", "dx: " + Float.toString(ball.dx) + " dy:" +
+                            Float.toString(ball.dy) + " Speed: " +
+                            Double.toString(Math.sqrt(ball.dx*ball.dx + ball.dy*ball.dy)));
+                    double normX = ball.cx - cornerX;
+                    double normY = ball.cy - cornerY;
+                    double c = -2*(ball.dx*normX + ball.dy*normY)/
+                            (normX*normX + normY*normY);
+                    ball.dx = (float) (ball.dx + c*normX);
+                    ball.dy = (float) (ball.dy + c*normY);
+                    Log.d("New Velocity", "dx: " + Float.toString(ball.dx) + " dy:" +
+                            Float.toString(ball.dy) + " Speed: " +
+                            Double.toString(Math.sqrt(ball.dx*ball.dx + ball.dy*ball.dy)));
+                }
             }
 
             if (mRandomGen.nextFloat() < mComputerMoveProbability) {
@@ -490,6 +532,15 @@ public class PongThread extends Thread {
         } else if (mBall.cy + mBall.radius >= mCanvasHeight) {
             mBall.cy = mCanvasHeight - mBall.radius - 1;
         }
+    }
+
+    private int cornerCount(boolean a, boolean b, boolean c, boolean d) {
+        int corners = 0;
+        if (a) {corners++;}
+        if (b) {corners++;}
+        if (c) {corners++;}
+        if (d) {corners++;}
+        return corners;
     }
 
     /**
@@ -654,7 +705,7 @@ public class PongThread extends Thread {
     private int collision(Ball ball, Brick brick) {
         RectF coords = brick.getCoords();
         RectF intersection = new RectF(coords);
-        if (intersection.intersects(
+        if (intersection.intersect(
                 ball.cx - ball.radius,
                 ball.cy - ball.radius,
                 ball.cx + ball.radius,
@@ -664,12 +715,14 @@ public class PongThread extends Thread {
                     if (distance(ball.cx, ball.cy, coords.left, coords.top) > ball.radius) {
                         return -1;
                     }
+                    Log.d("Collision Detection", "Top-Left Collision Detected.");
                     return TOP_LEFT_HIT;
                 }
                 if (ball.cy > coords.bottom) {
                     if (distance(ball.cx, ball.cy, coords.left, coords.bottom) > ball.radius) {
                         return -1;
                     }
+                    Log.d("Collision Detection", "Bottom-Left Collision Detected.");
                     return BOTTOM_LEFT_HIT;
                 }
             }
@@ -678,18 +731,22 @@ public class PongThread extends Thread {
                     if (distance(ball.cx, ball.cy, coords.right, coords.top) > ball.radius) {
                         return -1;
                     }
+                    Log.d("Collision Detection", "Top-Right Collision Detected.");
                     return TOP_RIGHT_HIT;
                 }
                 if (ball.cy > coords.bottom) {
                     if (distance(ball.cx, ball.cy, coords.right, coords.bottom) > ball.radius) {
                         return -1;
                     }
+                    Log.d("Collision Detection", "Bottom-Right Collision Detected.");
                     return BOTTOM_RIGHT_HIT;
                 }
             }
             if (intersection.height() > intersection.width()) {
+                Log.d("Collision Detection", "Top-Bottom Collision detected.");
                 return TOP_BOTTOM_HIT;
             }
+            Log.d("Collision Detection", "Left-Right Collision detected.");
             return LEFT_RIGHT_HIT;
         }
         return -1;
