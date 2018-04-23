@@ -628,6 +628,8 @@ public class PongThread extends Thread {
 
         float midX = mCanvasWidth/2;
         float midY = mCanvasHeight/2;
+        Log.d("Ball Creation",
+                "X-Coord: " + Float.toString(midX)+ " Y-Coord: " + Float.toString(midY));
 
         mBricks.clear();
 
