@@ -483,14 +483,17 @@ public class PongThread extends Thread {
                     ball.dy *= -1;
                 }
                 if (corners == 2) {
-                    Log.d("Collision Resolution", "Two Corner Collision Resolved");
+                    Log.d("Collision Resolution", "Two Corner Collision");
                     if ((TLHit && TRHit) || (BLHit && BRHit)) {
-                        ball.dx *= -1;
-                    }
-                    else if ((TLHit && BLHit) || (TRHit && BRHit)) {
+                        Log.d("Collision Resolution", "Y-Axis Collision");
                         ball.dy *= -1;
                     }
+                    else if ((TLHit && BLHit) || (TRHit && BRHit)) {
+                        Log.d("Collision Resolution", "X-Axis Collision");
+                        ball.dx *= -1;
+                    }
                     else {
+                        Log.d("Collision Resolution", "Corner Bounce");
                         ball.dx *= -1;
                         ball.dy *= -1;
                     }
@@ -709,15 +712,16 @@ public class PongThread extends Thread {
                 ball.cy - ball.radius,
                 ball.cx + ball.radius,
                 ball.cy + ball.radius)) {
-            if (ball.cx < coords.left) {
-                if (ball.cy < coords.top) {
+            Log.d("Collision Detection", "Possible Collision");
+            if (ball.cx <= coords.left) {
+                if (ball.cy <= coords.top) {
                     if (distance(ball.cx, ball.cy, coords.left, coords.top) > ball.radius) {
                         return -1;
                     }
                     Log.d("Collision Detection", "Top-Left Collision Detected.");
                     return TOP_LEFT_HIT;
                 }
-                if (ball.cy > coords.bottom) {
+                if (ball.cy >= coords.bottom) {
                     if (distance(ball.cx, ball.cy, coords.left, coords.bottom) > ball.radius) {
                         return -1;
                     }
@@ -725,15 +729,15 @@ public class PongThread extends Thread {
                     return BOTTOM_LEFT_HIT;
                 }
             }
-            if (ball.cx > coords.right) {
-                if (ball.cy < coords.top) {
+            if (ball.cx >= coords.right) {
+                if (ball.cy <= coords.top) {
                     if (distance(ball.cx, ball.cy, coords.right, coords.top) > ball.radius) {
                         return -1;
                     }
                     Log.d("Collision Detection", "Top-Right Collision Detected.");
                     return TOP_RIGHT_HIT;
                 }
-                if (ball.cy > coords.bottom) {
+                if (ball.cy >= coords.bottom) {
                     if (distance(ball.cx, ball.cy, coords.right, coords.bottom) > ball.radius) {
                         return -1;
                     }
